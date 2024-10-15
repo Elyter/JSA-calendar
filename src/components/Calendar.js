@@ -12,10 +12,15 @@ const terrains = ['Terrain 1', 'Terrain 2', 'Terrain 3', 'Terrain Central'];
 
 // Définissez les couleurs pour chaque collectif
 const collectifColors = {
-  'Collectif A': '#FF5733',
-  'Collectif B': '#33FF57',
-  'Collectif C': '#3357FF',
-  // Ajoutez d'autres collectifs et leurs couleurs ici
+  'N2F': '#FF8C73', // Orange plus foncé
+  'N2M': '#7389FF', // Bleu plus foncé
+  'PNF': '#73FF73', // Vert plus foncé
+  'PNM': '#B173FF', // Violet plus foncé
+  'R1M': '#FF73E6', // Rose plus foncé
+  'R1F': '#00CCC4', // Cyan plus foncé
+  'R2F': '#D4A900', // Or encore plus foncé
+  // Autres collectifs avec des couleurs plus foncées
+  'Match': '#A9A9A9', // Gris plus foncé pour les indisponibilités
 };
 
 const EventComponent = ({ event }) => (
@@ -46,6 +51,7 @@ export default function CalendarComponent({ isAdmin = false }) {
   const [modalStartTime, setModalStartTime] = useState('');
   const [modalEndTime, setModalEndTime] = useState('');
   const [modalDescription, setModalDescription] = useState('');
+  const [customCollectif, setCustomCollectif] = useState('');
 
   const collectifs = ['Collectif A', 'Collectif B', 'Collectif C']; // Ajoutez vos collectifs ici
 
@@ -88,13 +94,14 @@ export default function CalendarComponent({ isAdmin = false }) {
       setModalCollectif(event.title);
       setModalStartTime(moment(event.start).format('HH:mm'));
       setModalEndTime(moment(event.end).format('HH:mm'));
+      setModalDescription(event.description || ''); // Ajout de cette ligne
       setModalIsOpen(true);
     }
   };
 
   const handleModalSubmit = async (e) => {
     e.preventDefault();
-    const collectif = modalCollectif;
+    const collectif = modalCollectif === 'custom' ? customCollectif : modalCollectif;
     const startTime = moment(modalStartTime, 'HH:mm');
     const endTime = moment(modalEndTime, 'HH:mm');
 
@@ -231,7 +238,7 @@ export default function CalendarComponent({ isAdmin = false }) {
     <div>
       <h2 className="current-month">{currentMonth.format('MMMM YYYY')}</h2>
       <WeekendSelector />
-      <div style={{ height: '500px' }}>
+      <div style={{ height: '750px' }}>
         <Calendar
           localizer={localizer}
           events={events}
@@ -252,7 +259,7 @@ export default function CalendarComponent({ isAdmin = false }) {
           resourceIdAccessor="id"
           resourceTitleAccessor="title"
           min={moment().hour(8).minute(0).toDate()}
-          max={moment().hour(20).minute(0).toDate()}
+          max={moment().hour(23).minute(59).toDate()}
           date={currentDate.toDate()}
           onNavigate={(newDate) => {
             setCurrentDate(moment(newDate));
@@ -274,6 +281,7 @@ export default function CalendarComponent({ isAdmin = false }) {
         onRequestClose={() => {
           setModalIsOpen(false);
           setErrorMessage('');
+          resetModalFields(); // Ajout de cette ligne
         }}
         contentLabel="Nouvelle réservation"
         className="modal"
@@ -297,8 +305,22 @@ export default function CalendarComponent({ isAdmin = false }) {
                   {collectif}
                 </option>
               ))}
+              <option value="custom">Autre (personnalisé)</option>
             </select>
           </div>
+          {modalCollectif === 'custom' && (
+            <div className="form-group">
+              <label htmlFor="customCollectif">Collectif personnalisé :</label>
+              <input
+                type="text"
+                id="customCollectif"
+                name="customCollectif"
+                value={customCollectif}
+                onChange={(e) => setCustomCollectif(e.target.value)}
+                required
+              />
+            </div>
+          )}
           <div className="form-group">
             <label htmlFor="startTime">Heure de début :</label>
             <input
