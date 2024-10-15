@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/fr';
+import Modal from 'react-modal'; // Assurez-vous d'installer cette dépendance
 
 moment.locale('fr');
 const localizer = momentLocalizer(moment);
@@ -12,21 +13,45 @@ export default function CalendarComponent({ isAdmin = false }) {
   const [events, setEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(moment().startOf('day'));
   const [currentMonth, setCurrentMonth] = useState(moment().startOf('month'));
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState(null);
+
+  const collectifs = ['Collectif A', 'Collectif B', 'Collectif C']; // Ajoutez vos collectifs ici
 
   const handleSelect = ({ start, end, resourceId }) => {
     if (isAdmin) {
-      const title = window.prompt('Nouvelle réservation');
-      if (title) {
-        setEvents([
-          ...events,
-          {
-            start,
-            end,
-            title,
-            resourceId,
-          },
-        ]);
-      }
+      setNewEvent({ start, end, resourceId });
+      setModalIsOpen(true);
+    }
+  };
+
+  const handleModalSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const collectif = formData.get('collectif');
+    const startTime = moment(formData.get('startTime'), 'HH:mm');
+    const endTime = moment(formData.get('endTime'), 'HH:mm');
+
+    if (collectif) {
+      const updatedStart = moment(newEvent.start).set({
+        hour: startTime.get('hour'),
+        minute: startTime.get('minute')
+      });
+      const updatedEnd = moment(newEvent.start).set({
+        hour: endTime.get('hour'),
+        minute: endTime.get('minute')
+      });
+
+      setEvents([
+        ...events,
+        {
+          start: updatedStart.toDate(),
+          end: updatedEnd.toDate(),
+          title: collectif,
+          resourceId: newEvent.resourceId,
+        },
+      ]);
+      setModalIsOpen(false);
     }
   };
 
@@ -129,6 +154,52 @@ export default function CalendarComponent({ isAdmin = false }) {
           }}
         />
       </div>
+      <Modal
+        isOpen={modalIsOpen}
+        onRequestClose={() => setModalIsOpen(false)}
+        contentLabel="Nouvelle réservation"
+        className="modal"
+        overlayClassName="modal-overlay"
+      >
+        <h2 className="modal-title">Nouvelle réservation</h2>
+        <form onSubmit={handleModalSubmit} className="modal-form">
+          <div className="form-group">
+            <label htmlFor="collectif">Collectif</label>
+            <select name="collectif" id="collectif" required className="form-control">
+              <option value="">Sélectionnez un collectif</option>
+              {collectifs.map((collectif, index) => (
+                <option key={index} value={collectif}>{collectif}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="startTime">Heure de début</label>
+            <input
+              name="startTime"
+              id="startTime"
+              type="time"
+              defaultValue={newEvent ? moment(newEvent.start).format('HH:mm') : ''}
+              required
+              className="form-control"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="endTime">Heure de fin</label>
+            <input
+              name="endTime"
+              id="endTime"
+              type="time"
+              defaultValue={newEvent ? moment(newEvent.end).format('HH:mm') : ''}
+              required
+              className="form-control"
+            />
+          </div>
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary">Ajouter</button>
+            <button type="button" onClick={() => setModalIsOpen(false)} className="btn btn-secondary">Annuler</button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
