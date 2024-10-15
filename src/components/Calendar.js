@@ -3,6 +3,7 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/fr';
 import Modal from 'react-modal'; // Assurez-vous d'installer cette dépendance
+import axios from 'axios'; // Assurez-vous d'installer axios
 
 moment.locale('fr');
 const localizer = momentLocalizer(moment);
@@ -18,6 +19,28 @@ export default function CalendarComponent({ isAdmin = false }) {
 
   const collectifs = ['Collectif A', 'Collectif B', 'Collectif C']; // Ajoutez vos collectifs ici
 
+  useEffect(() => {
+    console.log("Composant monté, appel de fetchEvents");
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    console.log("Début de fetchEvents");
+    try {
+      console.log("Envoi de la requête GET");
+      const response = await axios.get('http://localhost:3001/api/events');
+      console.log("Réponse reçue:", response.data);
+      setEvents(response.data.map(event => ({
+        ...event,
+        start: new Date(event.start),
+        end: new Date(event.end)
+      })));
+      console.log("Événements mis à jour dans l'état");
+    } catch (error) {
+      console.error('Erreur lors de la récupération des événements:', error);
+    }
+  };
+
   const handleSelect = ({ start, end, resourceId }) => {
     if (isAdmin) {
       setNewEvent({ start, end, resourceId });
@@ -25,7 +48,7 @@ export default function CalendarComponent({ isAdmin = false }) {
     }
   };
 
-  const handleModalSubmit = (e) => {
+  const handleModalSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const collectif = formData.get('collectif');
@@ -42,16 +65,21 @@ export default function CalendarComponent({ isAdmin = false }) {
         minute: endTime.get('minute')
       });
 
-      setEvents([
-        ...events,
-        {
-          start: updatedStart.toDate(),
-          end: updatedEnd.toDate(),
-          title: collectif,
-          resourceId: newEvent.resourceId,
-        },
-      ]);
-      setModalIsOpen(false);
+      const newEventData = {
+        id: Date.now().toString(), // Génère un ID unique
+        title: collectif,
+        start: updatedStart.toISOString(),
+        end: updatedEnd.toISOString(),
+        resourceId: newEvent.resourceId,
+      };
+
+      try {
+        await axios.post('http://localhost:3001/api/events', newEventData);
+        await fetchEvents(); // Recharge les événements après l'ajout
+        setModalIsOpen(false);
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout de l\'événement:', error);
+      }
     }
   };
 
