@@ -27,8 +27,17 @@ const EventComponent = ({ event }) => (
 
 export default function CalendarComponent({ isAdmin = false }) {
   const [events, setEvents] = useState([]);
-  const [currentDate, setCurrentDate] = useState(moment().startOf('day'));
-  const [currentMonth, setCurrentMonth] = useState(moment().startOf('month'));
+  const [currentDate, setCurrentDate] = useState(() => {
+    const today = moment().startOf('day');
+    if (today.day() === 0 || today.day() === 6) {
+      // Si c'est samedi ou dimanche, on garde la date actuelle
+      return today;
+    } else {
+      // Sinon, on trouve le prochain samedi
+      return today.day(6);
+    }
+  });
+  const [currentMonth, setCurrentMonth] = useState(() => currentDate.clone().startOf('month'));
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [newEvent, setNewEvent] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
