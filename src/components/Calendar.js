@@ -10,12 +10,33 @@ const localizer = momentLocalizer(moment);
 
 const terrains = ['Terrain 1', 'Terrain 2', 'Terrain 3', 'Terrain Central'];
 
+// Définissez les couleurs pour chaque collectif
+const collectifColors = {
+  'Collectif A': '#FF5733',
+  'Collectif B': '#33FF57',
+  'Collectif C': '#3357FF',
+  // Ajoutez d'autres collectifs et leurs couleurs ici
+};
+
+const EventComponent = ({ event }) => (
+  <div>
+    <strong>{event.title}</strong>
+    {event.description && <p>{event.description}</p>}
+  </div>
+);
+
 export default function CalendarComponent({ isAdmin = false }) {
   const [events, setEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(moment().startOf('day'));
   const [currentMonth, setCurrentMonth] = useState(moment().startOf('month'));
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [newEvent, setNewEvent] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [modalCollectif, setModalCollectif] = useState('');
+  const [modalStartTime, setModalStartTime] = useState('');
+  const [modalEndTime, setModalEndTime] = useState('');
+  const [modalDescription, setModalDescription] = useState('');
 
   const collectifs = ['Collectif A', 'Collectif B', 'Collectif C']; // Ajoutez vos collectifs ici
 
@@ -33,7 +54,8 @@ export default function CalendarComponent({ isAdmin = false }) {
       setEvents(response.data.map(event => ({
         ...event,
         start: new Date(event.start),
-        end: new Date(event.end)
+        end: new Date(event.end),
+        // Assurez-vous que la couleur est incluse ici
       })));
       console.log("Événements mis à jour dans l'état");
     } catch (error) {
@@ -45,40 +67,88 @@ export default function CalendarComponent({ isAdmin = false }) {
     if (isAdmin) {
       setNewEvent({ start, end, resourceId });
       setModalIsOpen(true);
+      // Ajoutez ces lignes pour définir les horaires dans le modal
+      setModalStartTime(moment(start).format('HH:mm'));
+      setModalEndTime(moment(end).format('HH:mm'));
+    }
+  };
+
+  const handleSelectEvent = (event) => {
+    if (isAdmin) {
+      setSelectedEvent(event);
+      setModalCollectif(event.title);
+      setModalStartTime(moment(event.start).format('HH:mm'));
+      setModalEndTime(moment(event.end).format('HH:mm'));
+      setModalIsOpen(true);
     }
   };
 
   const handleModalSubmit = async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target);
-    const collectif = formData.get('collectif');
-    const startTime = moment(formData.get('startTime'), 'HH:mm');
-    const endTime = moment(formData.get('endTime'), 'HH:mm');
+    const collectif = modalCollectif;
+    const startTime = moment(modalStartTime, 'HH:mm');
+    const endTime = moment(modalEndTime, 'HH:mm');
 
     if (collectif) {
-      const updatedStart = moment(newEvent.start).set({
+      const eventToUpdate = selectedEvent || newEvent;
+      const updatedStart = moment(eventToUpdate.start).set({
         hour: startTime.get('hour'),
         minute: startTime.get('minute')
       });
-      const updatedEnd = moment(newEvent.start).set({
+      const updatedEnd = moment(eventToUpdate.end).set({
         hour: endTime.get('hour'),
         minute: endTime.get('minute')
       });
 
-      const newEventData = {
-        id: Date.now().toString(), // Génère un ID unique
+      const eventData = {
+        id: eventToUpdate.id || Date.now().toString(),
         title: collectif,
+        description: modalDescription, // Ajout de la description
         start: updatedStart.toISOString(),
         end: updatedEnd.toISOString(),
-        resourceId: newEvent.resourceId,
+        resourceId: eventToUpdate.resourceId,
+        color: collectifColors[collectif],
       };
 
       try {
-        await axios.post('http://localhost:3001/api/events', newEventData);
-        await fetchEvents(); // Recharge les événements après l'ajout
+        if (selectedEvent) {
+          await axios.put(`http://localhost:3001/api/events/${selectedEvent.id}`, eventData);
+        } else {
+          await axios.post('http://localhost:3001/api/events', eventData);
+        }
+        await fetchEvents();
         setModalIsOpen(false);
+        setErrorMessage('');
+        resetModalFields();
       } catch (error) {
-        console.error('Erreur lors de l\'ajout de l\'événement:', error);
+        console.error('Erreur lors de la modification/ajout de l\'événement:', error);
+        if (error.response && error.response.status === 400) {
+          setErrorMessage(error.response.data.error || 'Une erreur 400 est survenue. Veuillez vérifier vos données.');
+        } else {
+          setErrorMessage('Une erreur est survenue lors de la modification/ajout de l\'événement');
+        }
+      }
+    }
+  };
+
+  const resetModalFields = () => {
+    setSelectedEvent(null);
+    setModalCollectif('');
+    setModalStartTime('');
+    setModalEndTime('');
+    setModalDescription(''); // Réinitialisation de la description
+  };
+
+  const handleDeleteEvent = async () => {
+    if (selectedEvent && window.confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
+      try {
+        await axios.delete(`http://localhost:3001/api/events/${selectedEvent.id}`);
+        await fetchEvents();
+        setModalIsOpen(false);
+        setSelectedEvent(null);
+      } catch (error) {
+        console.error('Erreur lors de la suppression de l\'événement:', error);
+        setErrorMessage('Une erreur est survenue lors de la suppression de l\'événement');
       }
     }
   };
@@ -160,6 +230,7 @@ export default function CalendarComponent({ isAdmin = false }) {
           endAccessor="end"
           selectable={isAdmin}
           onSelectSlot={handleSelect}
+          onSelectEvent={handleSelectEvent}
           views={['day']}
           formats={{
             dayFormat: 'dddd DD/MM',
@@ -178,53 +249,95 @@ export default function CalendarComponent({ isAdmin = false }) {
             setCurrentDate(moment(newDate));
           }}
           components={{
+            event: EventComponent,
             toolbar: () => null // Ceci supprime la barre d'outils complète
           }}
+          eventPropGetter={(event) => ({
+            style: {
+              backgroundColor: event.color,
+              borderColor: event.color,
+            },
+          })}
         />
       </div>
       <Modal
         isOpen={modalIsOpen}
-        onRequestClose={() => setModalIsOpen(false)}
+        onRequestClose={() => {
+          setModalIsOpen(false);
+          setErrorMessage('');
+        }}
         contentLabel="Nouvelle réservation"
         className="modal"
         overlayClassName="modal-overlay"
       >
-        <h2 className="modal-title">Nouvelle réservation</h2>
+        <h2 className="modal-title">{selectedEvent ? 'Modifier la réservation' : 'Nouvelle réservation'}</h2>
+        {errorMessage && <div className="error-message">{errorMessage}</div>}
         <form onSubmit={handleModalSubmit} className="modal-form">
           <div className="form-group">
-            <label htmlFor="collectif">Collectif</label>
-            <select name="collectif" id="collectif" required className="form-control">
+            <label htmlFor="collectif">Collectif :</label>
+            <select
+              id="collectif"
+              name="collectif"
+              value={modalCollectif}
+              onChange={(e) => setModalCollectif(e.target.value)}
+              required
+            >
               <option value="">Sélectionnez un collectif</option>
-              {collectifs.map((collectif, index) => (
-                <option key={index} value={collectif}>{collectif}</option>
+              {Object.keys(collectifColors).map((collectif) => (
+                <option key={collectif} value={collectif}>
+                  {collectif}
+                </option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label htmlFor="startTime">Heure de début</label>
+            <label htmlFor="startTime">Heure de début :</label>
             <input
-              name="startTime"
-              id="startTime"
               type="time"
-              defaultValue={newEvent ? moment(newEvent.start).format('HH:mm') : ''}
+              id="startTime"
+              name="startTime"
+              value={modalStartTime}
+              onChange={(e) => setModalStartTime(e.target.value)}
               required
-              className="form-control"
             />
           </div>
           <div className="form-group">
-            <label htmlFor="endTime">Heure de fin</label>
+            <label htmlFor="endTime">Heure de fin :</label>
             <input
-              name="endTime"
-              id="endTime"
               type="time"
-              defaultValue={newEvent ? moment(newEvent.end).format('HH:mm') : ''}
+              id="endTime"
+              name="endTime"
+              value={modalEndTime}
+              onChange={(e) => setModalEndTime(e.target.value)}
               required
-              className="form-control"
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="description">Description (optionnelle) :</label>
+            <textarea
+              id="description"
+              name="description"
+              value={modalDescription}
+              onChange={(e) => setModalDescription(e.target.value)}
+              rows="3"
             />
           </div>
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary">Ajouter</button>
-            <button type="button" onClick={() => setModalIsOpen(false)} className="btn btn-secondary">Annuler</button>
+            <button type="submit" className="btn btn-primary">
+              {selectedEvent ? 'Modifier' : 'Ajouter'}
+            </button>
+            {selectedEvent && (
+              <button type="button" onClick={handleDeleteEvent} className="btn btn-danger">
+                Supprimer
+              </button>
+            )}
+            <button type="button" onClick={() => {
+              setModalIsOpen(false);
+              resetModalFields();
+              setErrorMessage('');
+            }} className="btn btn-secondary">
+              Annuler
+            </button>
           </div>
         </form>
       </Modal>
