@@ -80,4 +80,4 @@ Les contributions sont les bienvenues ! Veuillez suivre ces étapes :
 MIT
 
 ## Contact
-Eliott B. - [EliottB.dev]("https://eliottb.dev")
+Eliott B. - [EliottB.dev](https://eliottb.dev)
