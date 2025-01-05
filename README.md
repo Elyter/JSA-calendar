@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# JSA Calendar - Système de Réservation de Terrains
 
-## Getting Started
+## Description
+JSA Calendar est une application web de gestion des réservations de terrains sportifs. Elle permet de visualiser et gérer les créneaux horaires pour différents terrains, avec un système d'administration sécurisé.
 
-First, run the development server:
+## Fonctionnalités
+- Visualisation des réservations par weekend
+- Interface d'administration protégée par mot de passe
+- Gestion des réservations (création, modification, suppression)
+- Support pour différents types d'événements (matchs, entraînements)
+- Gestion des conflits de réservation
+- Interface responsive et intuitive
 
+## Technologies Utilisées
+- Next.js 14
+- React 18
+- Express.js
+- Tailwind CSS
+- React Big Calendar
+- Moment.js
+- Axios
+
+## Prérequis
+- Node.js (v18 ou supérieur)
+- npm ou yarn
+
+## Installation
+
+1. Cloner le repository
 ```bash
+bash
+git clone [URL_DU_REPO]
+cd jsa-calendar
+```
+2. Installer les dépendances
+```bash
+npm install
+
+ou
+
+yarn install
+```
+3. Lancer le serveur de développement
+```bash
+Terminal 1 - Frontend
+
 npm run dev
-# or
+
+ou
+
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+Terminal 2 - Backend
+
+node api/server.js
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Ouvrir [http://localhost:3000](http://localhost:3000) dans votre navigateur
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Configuration
+- Le serveur backend tourne sur le port 3001
+- Le mot de passe d'administration par défaut est 'test'
+- Les données sont stockées dans `api/data.json`
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Structure du Projet
+- `/src/app` - Pages et configuration Next.js
+- `/src/components` - Composants React
+- `/api` - Serveur Express et données
+- `/public` - Assets statiques
 
-## Learn More
+## Contribution
+Les contributions sont les bienvenues ! Veuillez suivre ces étapes :
+1. Forker le projet
+2. Créer une branche pour votre fonctionnalité
+3. Commiter vos changements
+4. Pousser vers la branche
+5. Ouvrir une Pull Request
 
-To learn more about Next.js, take a look at the following resources:
+## Licence
+MIT
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Contact
+Eliott B. - [EliottB.dev]("https://eliottb.dev")
